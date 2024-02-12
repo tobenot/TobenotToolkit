@@ -11,14 +11,14 @@ public class TobenotToolkit : ModuleRules
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
-				// ... add public include paths required here ...
+
 			}
 			);
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				// ... add other private include paths required here ...
+				System.IO.Path.GetFullPath(Target.RelativeEnginePath) + "Source/Editor/Blutility/Private"
 			}
 			);
 			
@@ -27,7 +27,6 @@ public class TobenotToolkit : ModuleRules
 			new string[]
 			{
 				"Core",
-				// ... add other public dependencies that you statically link with here ...
 			}
 			);
 			
@@ -38,7 +37,12 @@ public class TobenotToolkit : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore",
+				"SlateCore", 
+				"UMGEditor",
+				"ContentBrowser",
+				"UMG",
+				"UnrealEd",
+				"Blutility",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
