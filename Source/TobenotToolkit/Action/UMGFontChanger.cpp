@@ -37,8 +37,84 @@ void UUMGFontChanger::ChangeFontsInSelectedWidgets()
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateUObject(this,&UUMGFontChanger::OnFontSelected);
 	
 	const TSharedRef<SWidget> AssetPickerWidget = ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig);
+	
+	// 这里你可以增加Typeface选择和是否应该更改Typeface的控件
+	// 例如，添加一个下拉框来选择Typeface
+	TSharedRef<SComboBox<FName>> TypefaceComboBox = SNew(SComboBox<FName>)
+	.OptionsSource(&TypefaceOptions)
+	.OnGenerateWidget_Lambda([](FName Item)
+	{
+		return SNew(STextBlock).Text(FText::FromName(Item));
+	})
+	.OnSelectionChanged_Lambda([this](FName Item, ESelectInfo::Type SelectInfo)
+	{
+		OnTypefaceSelected(Item, SelectInfo);
+	})
+	.Content()
+	[
+		SNew(STextBlock)
+		.MinDesiredWidth(200)
+		.Text_Lambda([this]()
+		{
+			return FText::FromName(SelectedTypefaceName);
+		})
+	];
+	
+	TypefaceComboBoxPtr = TypefaceComboBox;
+	
+	TSharedRef<SHorizontalBox> CheckboxWithLabel = SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	[
+		SNew(SCheckBox)
+		.IsChecked(false)
+		.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState)
+		{
+			bShouldChangeTypeface = (NewState == ECheckBoxState::Checked);
+			UE_LOG(LogTemp, Log, TEXT("应改变Typeface设置为：%s"), bShouldChangeTypeface ? TEXT("true") : TEXT("false"));
+		})
+	]
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.Padding(10, 0, 0, 0)
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString(TEXT("Change Typeface")))
+	];
+	
+	// 现有的 AssetPickerWidget 设置内容
+	// 我们可以将其包含在一个水平或垂直布局中，一起和新的控件
+	TSharedRef<SVerticalBox> MainVerticalBox = SNew(SVerticalBox)
+	+ SVerticalBox::Slot()
+	.FillHeight(1.0)
+	[
+		AssetPickerWidget
+	]
+	// 这里添加我们的复选框控件
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		CheckboxWithLabel
+	]
+	// 这里添加我们的Typeface选择器
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		TypefaceComboBox
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	.Padding(2)
+	[
+		SNew(SButton)
+		.Text(NSLOCTEXT("UnrealEd", "ConfirmButton", "确认"))
+		.OnClicked_Lambda([this]() -> FReply
+		{
+			return OnConfirmButtonClick();
+		})
+	];
 
-	PickerWindow->SetContent(AssetPickerWidget);
+	PickerWindow->SetContent(MainVerticalBox);
 	PickerWindowPtr = PickerWindow;
 	
 	// 显示窗口
@@ -53,25 +129,19 @@ void UUMGFontChanger::ChangeFontsInSelectedWidgets()
 
 void UUMGFontChanger::OnFontSelected(const FAssetData& AssetData)
 {
-	UFont* SelectedFont = Cast<UFont>(AssetData.GetAsset());
+	SelectedFont = Cast<UFont>(AssetData.GetAsset());
 	if (!SelectedFont)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("选中的资源不是字体！"));
 		return;
 	}
 	UE_LOG(LogTemp, Log, TEXT("用户已选择字体：%s"), *SelectedFont->GetName());
+	PopulateTypefaceOptions();
 
-	TArray<UObject*> SelectedWidgets = UEditorUtilityLibrary::GetSelectedAssets();
-	// 在选择字体后续操作中，增加进度条显示的相关代码
-	// FSlateNotificationManager::Get().AddNotification(FNotificationInfo(NSLOCTEXT("UnrealEd", "FontChangeInProgress", "正在更换字体...")));
-    
-	for (UObject* Obj : SelectedWidgets)
+	TSharedPtr<SComboBox<FName>> TypefaceComboBox = TypefaceComboBoxPtr.Pin();
+	if(TypefaceComboBox.IsValid())
 	{
-		UWidgetBlueprint* WidgetBP = Cast<UWidgetBlueprint>(Obj);
-		if (WidgetBP)
-		{
-			ChangeFontInWidget(WidgetBP, SelectedFont);
-		}
+		TypefaceComboBox->RefreshOptions(); 
 	}
 }
 
@@ -88,27 +158,19 @@ void UUMGFontChanger::ChangeFontInWidget(UWidgetBlueprint* WidgetBP, UFont* NewF
 	
 	WidgetBP->Modify();
 	// 遍历UMG中的所有控件开始更换字体
-	for (UWidget* EachWidget : AllWidgets)
-	{
-		// 更新进度并显示当前处理的控件
+	for (UWidget* EachWidget : AllWidgets) {
 		SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("UnrealEd", "ProcessingWidget", "正在处理: {0}"), FText::FromString(EachWidget->GetName())));
-		// 处理文本控件
-		UTextBlock* TextBlock = Cast<UTextBlock>(EachWidget);
-		if (TextBlock)
-		{
+    
+		if (UTextBlock* TextBlock = Cast<UTextBlock>(EachWidget)) {
 			ChangeTextBlockFont(TextBlock, NewFont);
-		}
-		// 处理可编辑文本控件
-		UEditableText* EditableText = Cast<UEditableText>(EachWidget);
-		if (EditableText)
-		{
+		} else if (UEditableText* EditableText = Cast<UEditableText>(EachWidget)) {
 			ChangeEditableTextFont(EditableText, NewFont);
-		}
-		// 处理可编辑文本框控件
-		UEditableTextBox* EditableTextBox = Cast<UEditableTextBox>(EachWidget);
-		if (EditableTextBox)
-		{
+		} else if (UEditableTextBox* EditableTextBox = Cast<UEditableTextBox>(EachWidget)) {
 			ChangeEditableTextBoxFont(EditableTextBox, NewFont);
+		} else if (UMultiLineEditableText* MultiLineEditableText = Cast<UMultiLineEditableText>(EachWidget)) {
+			ChangeMultiLineEditableTextFont(MultiLineEditableText, NewFont);
+		} else if (UMultiLineEditableTextBox* MultiLineEditableTextBox = Cast<UMultiLineEditableTextBox>(EachWidget)) {
+			ChangeMultiLineEditableTextBoxFont(MultiLineEditableTextBox, NewFont);
 		}
 	}
 	// 标记蓝图已修改，完成事务
@@ -123,26 +185,132 @@ void UUMGFontChanger::ChangeFontInWidget(UWidgetBlueprint* WidgetBP, UFont* NewF
 	UE_LOG(LogTemp, Log, TEXT("%s中的所有控件字体更改完成。"), *WidgetBP->GetName());
 }
 
+// Utility function to apply new font settings to a SlateFontInfo structure
+FSlateFontInfo UUMGFontChanger::GetUpdatedFontInfo(const FSlateFontInfo& CurrentFontInfo, UFont* NewFont, bool bInShouldChangeTypeface, const FName& InSelectedTypefaceName)
+{
+	FSlateFontInfo UpdatedFontInfo = CurrentFontInfo;
+	UpdatedFontInfo.FontObject = NewFont;
+
+	if (bInShouldChangeTypeface)
+	{
+		UpdatedFontInfo.TypefaceFontName = InSelectedTypefaceName;
+	}
+
+	return UpdatedFontInfo;
+}
+
 void UUMGFontChanger::ChangeEditableTextFont(UEditableText* EditableText, UFont* NewFont)
 {
-	FSlateFontInfo NewFontInfo = EditableText->GetFont();
-	NewFontInfo.FontObject = NewFont;
+	FSlateFontInfo NewFontInfo = GetUpdatedFontInfo(EditableText->GetFont(), NewFont, bShouldChangeTypeface, SelectedTypefaceName);
 	EditableText->SetFont(NewFontInfo);
 	UE_LOG(LogTemp, Log, TEXT("EditableText %s 的字体已经更改。"), *EditableText->GetName());
 }
 
 void UUMGFontChanger::ChangeEditableTextBoxFont(UEditableTextBox* EditableTextBox, UFont* NewFont)
 {
-	FSlateFontInfo NewFontInfo = EditableTextBox->WidgetStyle.TextStyle.Font;
-	NewFontInfo.FontObject = NewFont;
+	FSlateFontInfo NewFontInfo = GetUpdatedFontInfo(EditableTextBox->WidgetStyle.TextStyle.Font, NewFont, bShouldChangeTypeface, SelectedTypefaceName);
 	EditableTextBox->WidgetStyle.SetFont(NewFontInfo);
 	UE_LOG(LogTemp, Log, TEXT("EditableTextBox %s 的字体已经更改。"), *EditableTextBox->GetName());
 }
 
 void UUMGFontChanger::ChangeTextBlockFont(UTextBlock* TextBlock, UFont* NewFont)
 {
-    FSlateFontInfo NewFontInfo = TextBlock->GetFont();
-    NewFontInfo.FontObject = NewFont;
+	FSlateFontInfo NewFontInfo = GetUpdatedFontInfo(TextBlock->GetFont(), NewFont, bShouldChangeTypeface, SelectedTypefaceName);
 	TextBlock->SetFont(NewFontInfo);
 	UE_LOG(LogTemp, Log, TEXT("TextBlock %s 的字体已经更改。"), *TextBlock->GetName());
+}
+void UUMGFontChanger::ChangeMultiLineEditableTextFont(UMultiLineEditableText* MultiLineEditableText, UFont* NewFont)
+{
+	FSlateFontInfo NewFontInfo = GetUpdatedFontInfo(MultiLineEditableText->GetFont(), NewFont, bShouldChangeTypeface, SelectedTypefaceName);
+	MultiLineEditableText->SetFont(NewFontInfo);
+	UE_LOG(LogTemp, Log, TEXT("MultiLineEditableText %s 的字体已经更改。"), *MultiLineEditableText->GetName());
+}
+
+void UUMGFontChanger::ChangeMultiLineEditableTextBoxFont(UMultiLineEditableTextBox* MultiLineEditableTextBox, UFont* NewFont)
+{
+	FSlateFontInfo NewFontInfo = GetUpdatedFontInfo(MultiLineEditableTextBox->WidgetStyle.TextStyle.Font, NewFont, bShouldChangeTypeface, SelectedTypefaceName);
+	MultiLineEditableTextBox->WidgetStyle.SetFont(NewFontInfo);
+	UE_LOG(LogTemp, Log, TEXT("MultiLineEditableTextBox %s 的字体已经更改。"), *MultiLineEditableTextBox->GetName());
+}
+
+void UUMGFontChanger::PopulateTypefaceOptions()
+{
+	if (SelectedFont == nullptr)
+	{
+		// 错误处理: 字体为空
+		UE_LOG(LogTemp, Warning, TEXT("无法加载Typeface选项，因为SelectedFont为null。"));
+		return;
+	}
+
+	TypefaceOptions.Empty(); // 清空之前的选项
+
+	// 获取字体的CompositeFont属性，这是个FTypedCompositeFont结构体
+	FCompositeFont CompositeFont = SelectedFont->CompositeFont;
+
+	// 遍历所有的Typeface，填充TypefaceOptions
+	for(const FTypefaceEntry& TypefaceEntry : CompositeFont.DefaultTypeface.Fonts)
+	{
+		FName TypefaceName = TypefaceEntry.Name;
+		TypefaceOptions.Add(TypefaceName);
+	}
+}
+
+void UUMGFontChanger::OnTypefaceSelected(FName NewValue, ESelectInfo::Type SelectInfo)
+{
+	if (NewValue.IsValid())
+	{
+		SelectedTypefaceName = NewValue;
+		UE_LOG(LogTemp, Log, TEXT("用户已选择Typeface：%s"), *SelectedTypefaceName.ToString());
+	}
+}
+
+FReply UUMGFontChanger::OnConfirmButtonClick()
+{
+	// Close the font picker window
+	TSharedPtr<SWindow> PickerWindow = PickerWindowPtr.Pin();
+	if (PickerWindow.IsValid())
+	{
+		PickerWindow->RequestDestroyWindow();
+	}
+
+	// First check if SelectedFont is valid before proceeding
+	if (!SelectedFont)
+	{
+		// Log an error if SelectedFont is null
+		UE_LOG(LogTemp, Error, TEXT("Font change operation cannot proceed because no font is selected."));
+		FNotificationInfo Info(FText::FromString("Font change operation failed: No font is selected."));
+		Info.bFireAndForget = true;
+		Info.FadeOutDuration = 3.0f;
+		Info.ExpireDuration = 2.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+
+		// Return FReply::Unhandled() to indicate the operation was not successful
+		return FReply::Unhandled();
+	}
+
+	if (bShouldChangeTypeface && SelectedTypefaceName.IsNone())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Font change operation cannot proceed because no typeface is selected."));
+		FNotificationInfo Info(FText::FromString("Font change operation cannot proceed because no typeface is selected."));
+		Info.bFireAndForget = true;
+		Info.FadeOutDuration = 3.0f;
+		Info.ExpireDuration = 2.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return FReply::Unhandled();
+	}
+
+	// Perform the font change operation
+	TArray<UObject*> SelectedWidgets = UEditorUtilityLibrary::GetSelectedAssets();
+
+	for (UObject* Obj : SelectedWidgets)
+	{
+		UWidgetBlueprint* WidgetBP = Cast<UWidgetBlueprint>(Obj);
+		if (WidgetBP)
+		{
+			ChangeFontInWidget(WidgetBP, SelectedFont);
+		}
+	}
+
+	// Return FReply::Handled() to indicate the event has been processed
+	return FReply::Handled();
 }

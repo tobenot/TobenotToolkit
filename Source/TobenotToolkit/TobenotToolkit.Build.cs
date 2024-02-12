@@ -43,6 +43,7 @@ public class TobenotToolkit : ModuleRules
 				"UMG",
 				"UnrealEd",
 				"Blutility",
+				"InputCore",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
