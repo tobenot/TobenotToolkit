@@ -55,5 +55,8 @@ public class TobenotToolkit : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+		
+		PrivateIncludePaths.AddRange(new string[] { "TobenotToolkit" });
+		PublicIncludePaths.AddRange(new string[] { "TobenotToolkit" });
 	}
 }
