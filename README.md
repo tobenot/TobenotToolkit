@@ -1,15 +1,44 @@
-这是一个虚幻引擎的插件，是tobenot在开发过程中积累的一些通用代码。
+# Tobenot's Unreal Engine Plugin
 
-目前包含的功能：
+This is a plugin designed for Unreal Engine, composed of some general-purpose code accumulated by tobenot during development.
 
-一键更改选中的UMG里面的控件的所有字体（可选Typeface）
+## Features
 
-使用方式：下载仓库，在虚幻项目根目录新建Plugins文件夹（和Content同级），把本仓库的东西解压放进去，然后从C++编译
+- **C++ Plugin**: Needs to be compiled from C++ source code for use.
+- **Font Change**: Quickly change all fonts (optional Typeface) of the selected UMG widget with one click.
+- **Log Categorization**: Outputs logs by category to the `Saved/CLogs/Category` directory.
 
-This is a plugin for the Unreal Engine 5.3, consisting of some general-purpose code accumulated by tobenot during the development process. 
+## Installation Guide
 
-Current features include:
+1. Download the plugin repository.
+2. Create a new folder named `Plugins` in the root directory of your Unreal project (at the same level as the `Content` folder).
+3. Unzip the downloaded repository content and place it into the `Plugins` folder.
+4. Compile using C++ for use.
 
-One-click to change all fonts (optional Typeface) in the selected UMG widgets.
+## Developed for Unreal Engine Version
 
-Usage: Download the repository, create a new Plugins folder in the Unreal project root directory (same level as Content), unzip the things from this repository and put them in, and then compile the source code.
+- Unreal Engine 5.3
+
+
+简体中文：
+
+# TobenotToolkit: Tobenot's Unreal Engine Plugin
+
+这是一个为虚幻引擎设计的插件，由tobenot在开发过程中积累的一些通用代码组成。
+
+## 功能特点
+
+- **C++插件**：需要从C++源码编译使用。
+- **字体更改**: 快速一键更改选中UMG控件的所有字体（可选Typeface）。
+- **日志分类**: 将日志按类别输出到`Saved/CLogs/类别`目录下。
+
+## 安装指南
+
+1. 下载插件仓库。
+2. 在你的虚幻项目根目录下创建一个名为`Plugins`的新文件夹（与`Content`文件夹同级）。
+3. 将下载的仓库内容解压并放入`Plugins`文件夹中。
+4. 通过C++进行编译使用。
+
+## 开发的虚幻引擎版本
+
+- 虚幻引擎 5.3
