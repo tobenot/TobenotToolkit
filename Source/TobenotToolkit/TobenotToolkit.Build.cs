@@ -38,12 +38,6 @@ public class TobenotToolkit : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore", 
-				"UMGEditor",
-				"ContentBrowser",
-				"UMG",
-				"UnrealEd",
-				"Blutility",
-				"InputCore",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

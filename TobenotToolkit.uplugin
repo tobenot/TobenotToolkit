@@ -3,10 +3,10 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "TobenotToolkit",
-	"Description": "tobenot's toolkit",
+	"Description": "tobenot's toolkit for runtime",
 	"Category": "Other",
 	"CreatedBy": "tobenot",
-	"CreatedByURL": "https://tobenot.github.io/",
+	"CreatedByURL": "https://github.com/tobenot",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
@@ -17,8 +17,8 @@
 	"Modules": [
 		{
 			"Name": "TobenotToolkit",
-			"Type": "Editor",
-			"LoadingPhase": "PreDefault"
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen"
 		}
 	]
 }
