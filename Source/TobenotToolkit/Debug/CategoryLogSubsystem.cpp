@@ -45,6 +45,8 @@ bool UCategoryLogSubsystem::IsValidLogCategory(const FString& CategoryName)
 
 void UCategoryLogSubsystem::WriteLog(const FName& LogCategory, const FString& LogText)
 {
+	// SHIPPING包目前不打任何日志
+#if !UE_BUILD_SHIPPING
 	FString LogFilePath = GetOrCreateLogFile(LogCategory);
 
 	// 确保日志目录存在
@@ -60,4 +62,5 @@ void UCategoryLogSubsystem::WriteLog(const FName& LogCategory, const FString& Lo
 
 	// 将日志文本追加到文件
 	FFileHelper::SaveStringToFile(LogEntry, *LogFilePath, FFileHelper::EEncodingOptions::ForceUTF8, &IFileManager::Get(), FILEWRITE_Append);
+#endif 
 }
